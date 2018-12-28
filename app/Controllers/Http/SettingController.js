@@ -33,7 +33,7 @@ class SettingController {
         allowedExtensions: ['jpg', 'png', 'jpeg']
       })
 
-      if (!landing) {
+      if (!landing && setting.landing_bg.length === 0) {
         errors.concat([{message: 'The landing field is required'}])
       } else {
         await landing.move(Helpers.publicPath('settings'), {
@@ -53,7 +53,7 @@ class SettingController {
         allowedExtensions: ['jpg', 'png', 'jpeg']
       })
 
-      if (!biography) {
+      if (!biography && setting.bio_bg.length === 0) {
         errors.concat([{message: 'The biography field is required'}])
       } else {
         await biography.move(Helpers.publicPath('settings'), {
@@ -73,7 +73,7 @@ class SettingController {
         allowedExtensions: ['jpg', 'png', 'jpeg']
       })
 
-      if (!shop) {
+      if (!shop && setting.shop_bg.length === 0) {
         errors.concat([{message: 'The shop field is required'}])
       } else {
         await shop.move(Helpers.publicPath('settings'), {
@@ -93,7 +93,7 @@ class SettingController {
         allowedExtensions: ['jpg', 'png', 'jpeg']
       })
 
-      if (!contact) {
+      if (!contact && setting.contact_bg.length === 0) {
         errors.concat([{message: 'The contact field is required'}])
       } else {
         await contact.move(Helpers.publicPath('settings'), {

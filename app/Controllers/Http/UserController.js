@@ -39,7 +39,7 @@ class UserController {
           allowedExtensions: ['jpg', 'png', 'jpeg']
         })
 
-        if (!picture) {
+        if (!picture && user.picture.length === 0) {
           errors.concat([{message: 'A picture is required'}])
         } else {
           await picture.move(Helpers.publicPath('user'), {
