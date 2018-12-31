@@ -29,6 +29,6 @@ Route.group(() => {
   Route.get('user', 'UserController.show')
   Route.post('user/update', 'UserController.update').middleware('auth')
   // Settings
-  Route.get('settings', 'SettingsController.show')
+  Route.get('settings', 'SettingController.show')
   Route.post('settings', 'SettingController.update').middleware('auth')
 }).prefix('api/v1')

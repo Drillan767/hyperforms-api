@@ -8,7 +8,7 @@ const Env = use('Env')
 
 class SettingController {
   async show ({response}) {
-    const setting = await Setting.first()
+    const setting = await Settings.first()
     return response.status(200).json(setting)
   }
 
@@ -25,17 +25,14 @@ class SettingController {
       errors.concat(validation.messages())
     } else {
       const data = request.only(['soundcloud', 'youtube', 'spotify', 'songkick'])
-      const setting = await Setting.first()
 
       // Landing
-      const landing = request.file('landing', {
+      const landing = request.file('landing_bg', {
         types: ['image'],
         allowedExtensions: ['jpg', 'png', 'jpeg']
       })
 
-      if (!landing && setting.landing_bg.length === 0) {
-        errors.concat([{message: 'The landing field is required'}])
-      } else {
+      if (landing) {
         await landing.move(Helpers.publicPath('settings'), {
           overwrite: true,
           name: `landing.${landing.subtype}`
@@ -45,17 +42,17 @@ class SettingController {
         } else {
           data.landing_bg = `${Env.get('APP_URL')}/settings/landing.${landing.subtype}`
         }
+      } else {
+        data.landing_bg = ''
       }
 
       // Biography
-      const biography = request.file('biography', {
+      const biography = request.file('bio_bg', {
         types: ['image'],
         allowedExtensions: ['jpg', 'png', 'jpeg']
       })
 
-      if (!biography && setting.bio_bg.length === 0) {
-        errors.concat([{message: 'The biography field is required'}])
-      } else {
+      if (biography) {
         await biography.move(Helpers.publicPath('settings'), {
           overwrite: true,
           name: `biography.${biography.subtype}`
@@ -65,17 +62,17 @@ class SettingController {
         } else {
           data.bio_bg = `${Env.get('APP_URL')}/settings/biography.${biography.subtype}`
         }
+      } else {
+        data.bio_bg = ''
       }
 
       // Shop
-      const shop = request.file('shop', {
+      const shop = request.file('shop_bg', {
         types: ['image'],
         allowedExtensions: ['jpg', 'png', 'jpeg']
       })
 
-      if (!shop && setting.shop_bg.length === 0) {
-        errors.concat([{message: 'The shop field is required'}])
-      } else {
+      if (shop) {
         await shop.move(Helpers.publicPath('settings'), {
           overwrite: true,
           name: `shop.${shop.subtype}`
@@ -85,17 +82,17 @@ class SettingController {
         } else {
           data.shop_bg = `${Env.get('APP_URL')}/settings/shop.${shop.subtype}`
         }
+      } else {
+        data.shop_bg = ''
       }
 
       // Contact
-      const contact = request.file('contact', {
+      const contact = request.file('contact_bg', {
         types: ['image'],
         allowedExtensions: ['jpg', 'png', 'jpeg']
       })
 
-      if (!contact && setting.contact_bg.length === 0) {
-        errors.concat([{message: 'The contact field is required'}])
-      } else {
+      if (contact) {
         await contact.move(Helpers.publicPath('settings'), {
           overwrite: true,
           name: `contact.${contact.subtype}`
@@ -105,21 +102,28 @@ class SettingController {
         } else {
           data.contact_bg = `${Env.get('APP_URL')}/settings/contact.${contact.subtype}`
         }
+      } else {
+        data.contact_bg = ''
       }
 
       if (errors.length > 0) {
         return response.status(401).json(errors)
-      } else {
-        setting.soundcloud = data.soundcloud || setting.soundcloud
-        setting.youtube = data.youtube || setting.youtube
-        setting.spotify = data.spotify || setting.spotify
-        setting.songkick = data.songkick || setting.songkick
-        setting.landing_bg = data.landing_bg || setting.landing_bg
-        setting.bio_bg = data.bio_bg || setting.bio_bg
-        setting.shop_bg = data.shop_bg || setting.shop_bg
-        setting.contact_bg = data.contact_bg || setting.contact_bg
+      }
+
+      const setting = await Settings.first()
+
+      if (setting) {
+        console.log(data)
+        let fields = ['soundcloud', 'youtube', 'spotify', 'songkick', 'landing_bg', 'bio_bg', 'shop_bg', 'contact_bg']
+        fields.map(field => {
+          setting[field] = data[field] || setting[field]
+        })
 
         await setting.save()
+        return response.status(200).json(setting)
+      } else {
+        const setting = await Settings.create(data)
+        return response.status(201).json(setting)
       }
     }
   }
