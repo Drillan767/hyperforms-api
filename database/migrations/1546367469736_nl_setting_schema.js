@@ -7,6 +7,7 @@ class NlSettingSchema extends Schema {
   up () {
     this.create('nl_settings', (table) => {
       table.increments()
+      table.string('title', 150).notNullable()
       table.text('template')
       table.string('bottom_text')
       table.string('unsubscribe')

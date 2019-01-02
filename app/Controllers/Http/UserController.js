@@ -41,7 +41,7 @@ class UserController {
 
         if (!picture && user.picture.length === 0) {
           errors.concat([{message: 'A picture is required'}])
-        } else {
+        } else if (picture) {
           await picture.move(Helpers.publicPath('user'), {
             overwrite: true
           })
@@ -50,9 +50,9 @@ class UserController {
           } else {
             data.picture = `${Env.get('APP_URL')}/user/${picture.clientName}`
           }
+        } else {
+          data.picture = user.picture
         }
-
-        console.log(data)
 
         if (errors.length > 0) {
           return response.status(401).json(errors)
