@@ -32,6 +32,8 @@ Route.group(() => {
   Route.get('settings', 'SettingController.show')
   Route.post('settings', 'SettingController.update').middleware('auth')
   // Newsletter
-  Route.get('newsletters/settings', 'NewsLetterController.getList').middleware('auth')
-  Route.post('newsletters/settings', 'NewsLetterController.saveNLSettings').middleware('auth')
+  Route.get('newsletters', 'NewsLetterController.newsLetters').middleware('auth')
+  Route.post('newsletter/store', 'NewsLetterController.createNL').middleware('auth')
+  Route.post('newsletter/upload', 'NewsLetterController.upload').middleware('auth')
+  Route.get('subscribers', 'NewsLetterController.subscribers').middleware('auth')
 }).prefix('api/v1')

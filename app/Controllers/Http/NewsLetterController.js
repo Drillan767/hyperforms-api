@@ -1,11 +1,13 @@
 'use strict'
 
 const { validate, validateAll} = use('Validator')
-const NL = use('App/Models/NewsLetter')
-const NLSettings = use('App/Models/NlSetting')
+const Newsletter = use('App/Models/NewsLetter')
 const Mail = use('Mail')
-const RS = require('random-string')
 const Email = use('App/Models/Email')
+const Drive = use('Drive')
+const Helpers = use('Helpers')
+const Env = use('Env')
+const RS = require('random-string')
 
 class NewsLetterController {
 
@@ -27,7 +29,7 @@ class NewsLetterController {
       await Mail.send('newsletters.confirm_newsletter', email.toJSON(), (message) => {
         message
           .to(email.email)
-          .from('Hyperforms <noreply@hyperforms.com>')
+          .from('noreply@hyperforms.com', 'Hyperforms')
           .subject('Hyperforms: Please confirm subscription')
       })
 
@@ -47,45 +49,66 @@ class NewsLetterController {
     }
   }
 
-  async getList ({response}) {
-    const nl_settings = await NLSettings.all()
-    return response.status(200).json(nl_settings)
-  }
-
   async newsLetters ({response}) {
-    const nl = await NL.all()
+    const nl = await Newsletter.all()
     return response.status(200).json(nl)
   }
 
-  async saveNLSettings ({request, response}) {
-    let errors = []
-    const validation = await validateAll(request.all(), {
-      title: 'string|required',
-      template: 'required',
-      bottom_text: 'string|required',
-      unsubscribe: 'string|required'
+  async subscribers ({response}) {
+    const emails = await Email.all()
+    return response.status(200).json(emails)
+  }
+
+  async upload ({request, response}) {
+    const image = request.file('image', {
+      types: ['image'],
+      size: '2mb'
     })
 
-    if (validation.fails()) {
-      return response.status(401).json(errors.concat(validation.messages()))
-    } else {
-      const data = request.only(['title', 'template', 'bottom_text', 'unsubscribe'])
-      if (!data.unsubscribe.includes('[unsub_link]')) {
-        errors.push({ message: 'The field needs to contain "[unsub_link]"' })
-      }
+    await image.move(Helpers.publicPath('newsletter/tmp'), {
+      overwrite: true
+    })
 
-      if (errors.length > 0) {
-        return response.status(401).json(errors)
-      } else {
-        const nl_setting = await NLSettings.create(data)
-        return response.status(201).json(nl_setting)
-      }
+    if (!image.moved()) {
+      return response.status(401).json(image.error())
+    } else {
+      return response.status(200).json(`${Env.get('APP_URL')}/newsletter/tmp/${image.clientName}`)
     }
   }
 
-  async deleteNLSettings ({request, response}) {}
+  async createNL ({request, response}) {
+    const validation = await validateAll(request.all(), {
+      title: 'string|required',
+      content: 'required',
+      status: 'boolean|required'
+    })
 
-  async createNL ({request, response}) {}
+    if (validation.fails()) {
+      return response.status(401).json(validation.messages())
+    } else {
+      const data = request.all()
+      const images = data.images
+      delete data.images
+      const nl = await Newsletter.create(data)
+
+      if (images.length > 0) {
+        console.log(images[1])
+        for (let i = 0; i < images.length; i++) {
+          const basename = images[i].split(/[\\/]/).pop()
+          if (data.content.includes(basename)) {
+            await Drive.move(Helpers.publicPath(`newsletter/tmp/${basename}`),
+              Helpers.publicPath(`newsletter/${nl.id}/${basename}`))
+          }
+        }
+
+        nl.content = nl.content.replace(/\/tmp\//g, `/${nl.id}/`)
+        await Drive.delete(Helpers.publicPath('newsletter/tmp'))
+        await nl.save()
+      }
+
+      return response.status(200).json(nl)
+    }
+  }
 
   async publishNL ({request, response}) {}
 
