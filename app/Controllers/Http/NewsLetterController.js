@@ -7,7 +7,9 @@ const Email = use('App/Models/Email')
 const Drive = use('Drive')
 const Helpers = use('Helpers')
 const Env = use('Env')
+const mailgun = require('mailgun-js')({apiKey: Env.get('MAILGUN_KEY'), domain: Env.get('MAILGUN_DOMAIN')})
 const RS = require('random-string')
+const maked = require('marked')
 
 class NewsLetterController {
 
@@ -20,17 +22,33 @@ class NewsLetterController {
       return response.status(401).json(validation.messages())
     } else {
       const { email } = request.only(['email'])
-      await Email.create({
+      const mail = await Email.create({
         email: email,
         confirm_token: RS({length: 40}),
         confirmed: false
+      })
+
+      if (mail.id === 1) {
+        mailgun.post('/list', {'address': `newsletter@${Env.get('MAILGUN_DOMAIN')}`, 'description': 'List for Hyperform\'s newsletter'}, (error, body) => {
+          if (error) {
+            console.log(error)
+          }
+          if (body) {
+            console.log(body)
+          }
+        })
+      }
+
+      const list = mailgun.lists(`newsletter@${Env.get('MAILGUN_DOMAIN')}`)
+      list.members().create({subscribed: false, address: mail.email}, (error, data) => {
+        console.log(data)
       })
 
       await Mail.send('newsletters.confirm_newsletter', email.toJSON(), (message) => {
         message
           .to(email.email)
           .from('noreply@hyperforms.com', 'Hyperforms')
-          .subject('Hyperforms: Please confirm subscription')
+          .subject('Hyperforms: Please confirm your subscription')
       })
 
       return response.status(200).json('ok')
@@ -42,9 +60,14 @@ class NewsLetterController {
     if (!email) {
       return response.status(401).json('not found')
     } else {
+      const list = mailgun.lists(`newsletter@${Env.get('MAILGUN_DOMAIN')}`)
+      list.members(email.email).update({'subscribed': true}, (error, data) => {
+        console.log(data)
+      })
       email.confirmed = true
       email.confirmation_token = ''
       await email.save()
+
       return response.status(200).json('ok')
     }
   }
@@ -92,7 +115,6 @@ class NewsLetterController {
       const nl = await Newsletter.create(data)
 
       if (images.length > 0) {
-        console.log(images[1])
         for (let i = 0; i < images.length; i++) {
           const basename = images[i].split(/[\\/]/).pop()
           if (data.content.includes(basename)) {
@@ -105,14 +127,25 @@ class NewsLetterController {
         await Drive.delete(Helpers.publicPath('newsletter/tmp'))
         await nl.save()
       }
-
       return response.status(200).json(nl)
     }
   }
 
-  async publishNL ({request, response}) {}
-
-  async uploadNL ({request, response}) {}
+  async publishNL ({params, response}) {
+    const nl = await Newsletter.find(params.id)
+    if (nl) {
+      nl.status = true
+      await nl.save()
+      nl.content = marked(nl.content, {sanitize: true})
+      await Mail.send('newsletters.newsletter', nl.toJSON(), (message) => {
+        message
+          .to('newsletter@mg.josephlevarato.fr')
+          .from('noreply@hyperforms.com', 'Hyperforms')
+          .subject(nl.title)
+      })
+    }
+    return response.status(200).json('ok')
+  }
 }
 
 module.exports = NewsLetterController

@@ -35,5 +35,8 @@ Route.group(() => {
   Route.get('newsletters', 'NewsLetterController.newsLetters').middleware('auth')
   Route.post('newsletter/store', 'NewsLetterController.createNL').middleware('auth')
   Route.post('newsletter/upload', 'NewsLetterController.upload').middleware('auth')
+  Route.post('newsletter/publish/:id', 'NewsLetterController.publishNL').middleware('auth')
   Route.get('subscribers', 'NewsLetterController.subscribers').middleware('auth')
+  Route.get('subscribe', 'NewsLetterController.subscribe')
+  Route.get('confirm', 'NewsLetterController.confirmSubscription')
 }).prefix('api/v1')
